@@ -1,0 +1,343 @@
+---
+title: "Vattenkemi - sjöar"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+always_allow_html: true
+output:
+  html_document:
+    df_print: paged
+
+---
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Initial inladdning av paket och egenskrivna funktioner
+source("shared_functions.R")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+#Initial inladdning av paket och egenskrivna funktioner
+source("shared_functions.R")
+```
+
+```{r}
+sjöar_kemi2011 <- import_slu_mvm_data_excel(here("trend_kemi2011.xlsx"), numeric_var = 29, sheet=2)
+sjöar_kemi2021 <- import_slu_mvm_data_excel(here("trend_kemi2021.xlsx"), numeric_var = 29, sheet=2)
+sjöar_kemistora <- import_slu_mvm_data_excel(here("stora_kemi.xlsx"), numeric_var = 29, sheet=2)
+sjöar_kemi2011%>%full_join(sjöar_kemi2021)%>%full_join(sjöar_kemistora)->sjöar_kemi
+
+sjöar_kemi$Undersökningstyp = sjöar_kemi$Undersökningstyp %>% as.character()
+sjöar_kemi$Provkommentar = sjöar_kemi$Provkommentar %>% as.character()
+```
+
+
+```{r}
+last_year<-2021
+```
+
+
+
+```{r include=FALSE}
+
+
+sjöar_kemi %>% 
+  mutate(`Cd (µg/l)`=case_when(`Cd (µg/l)`<0.005 ~0.003,
+                               TRUE ~`Cd (µg/l)`))%>%
+  dplyr::select(1:Provtagningsdag, 
+         `Min provdjup (m)` ,
+         `Max provdjup (m)` ,
+         
+         `NO2+NO3-N (µg/l N)`,
+         `NH4-N (µg/l N)`, #Oorganiskt kväve
+         `Kjeld.-N (µg/l N)`, 
+         `Tot-N_TNb (µg/l N)`,
+         `Tot-N_ps (µg/l N)`, # Totalt kväve
+         `Tot-N (µg/l N)`,
+         `Tot-P (µg/l P)`, #Totalt fosfor
+         `PO4-P (µg/l P)`, #Fosfatfosfor
+         `TOC (mg/l C)`, # Totalt organiskt kol
+         `Alk/Acid (mekv/l)`,
+        
+         `Siktdjup med kikare (m)`, 
+         `Siktdjup utan kikare (m)`,
+         `Siktdjup (m)`, # Siktdjup
+         #`Si (µg/l)`, # Kisel
+         `Si (mg/l)`, 
+         `SO4_IC (mg/l S)`, #Sulfat
+         `SO4_IC (mg/l SO4)`,
+         `SO4 (mg/l S)`,
+         pH,
+         `Cd (µg/l)`,
+         `Pb (µg/l)`,
+         `Ni (µg/l)`,
+         `Hg (ng/l)`,
+         `Kond_25 (mS/m)`, #Konduktivitet
+         `Abs_F 420 (/5cm)`) %>% # Brunhet
+  as_tibble() %>% 
+  mutate(`Oorganiskt N (µg/l N)` = `NO2+NO3-N (µg/l N)`+`NH4-N (µg/l N)`,
+    `Tot-N_TNb (µg/l N)` = ifelse((Provtagningsår + (Provtagningsmånad-1)/12)>(2009+8/12), `Tot-N_TNb (µg/l N)`, NA),
+    `Tot-N (µg/l N)` = `Tot-N_TNb (µg/l N)` %>% 
+      coalesce(`Kjeld.-N (µg/l N)`+`NO2+NO3-N (µg/l N)`) %>% 
+      coalesce(`Tot-N_ps (µg/l N)`) %>% 
+      coalesce(`Tot-N (µg/l N)`),
+    `Alkalinitet (mekv/l)` = `Alk/Acid (mekv/l)` ,
+    `Siktdjup (m)` = `Siktdjup med kikare (m)` %>% 
+         coalesce(`Siktdjup utan kikare (m)`) %>% 
+         coalesce(`Siktdjup (m)`),
+    `Si (µg/l)` = `Si (mg/l)`*1000,
+     SO4_komb=case_when(!is.na(`SO4_IC (mg/l S)`)~`SO4_IC (mg/l S)`/((32.06)/2), 
+                            !is.na(`SO4_IC (mg/l SO4)`)~`SO4_IC (mg/l SO4)`/((32.06+4*16)/2),
+                            TRUE~`SO4 (mg/l S)`/(32.06/2)),
+    VJA=10^(-pH) #Vätejonaktivitet
+   ) %>% 
+  ###################################
+  #Förekommer sjöar med flera observationer på samma provdatum som skapar saknande värden, antgligen pga av bottenfauna
+#Bättre att hantera bottenfauna och vattenkemi separat istället för joined dataset.
+######################################
+  group_by(Övervakningsstation, `Stationskoordinat N/X`, `Stationskoordinat E/Y`, Provdatum) %>% 
+  filter(`Max provdjup (m)` <= 2, `Max provdjup (m)` == min(`Max provdjup (m)`)) %>%
+  ungroup() %>% # Ytligaste provet som inte är djupare än 2 meter
+    dplyr::select(1:29, 
+           
+         `Oorganiskt N (µg/l N)`,
+         `Tot-N (µg/l N)`,
+         `Tot-P (µg/l P)`, 
+         `PO4-P (µg/l P)`, 
+         `TOC (mg/l C)`,
+         `Alkalinitet (mekv/l)`,
+         `Siktdjup (m)`,
+         `Si (µg/l)`,
+         `SO4_komb`,
+         VJA,
+         `Cd (µg/l)`,
+         `Pb (µg/l)`,
+         `Ni (µg/l)`,
+         `Hg (ng/l)`,
+          `Kond_25 (mS/m)`, #Konduktivitet
+         `Abs_F 420 (/5cm)`) %>% 
+  mutate(year = ifelse(Provtagningsmånad == 12, yes = Provtagningsår+1, no=Provtagningsår),
+        season = Provtagningsmånad %>% 
+          factor() %>% 
+          fct_collapse("1" = c("1","2","12"),
+                       "2" = c("3","4","5"),
+                       "3" = c("6","7","8"),
+                       "4" = c("9","10","11")) %>% as.character() %>% 
+           parse_number()
+         ) %>% 
+  gather(variable, value, `Oorganiskt N (µg/l N)`:`Abs_F 420 (/5cm)`, na.rm = T) %>% 
+  group_by(Övervakningsstation, `Stationskoordinat N/X`, `Stationskoordinat E/Y`,  variable) %>% 
+  periods(year, filter_less_than = 10) %>% 
+  mutate(n_years = n_distinct(year, na.rm = TRUE), max_year = max(year)) %>%
+  filter(max_year >= 2015, year<=last_year) %>% 
+    ungroup() -> 
+  sjöar_kemi_data1
+```
+
+```{r}
+
+sjöar_kemi %>% 
+  dplyr::select(1:Provtagningsdag, 
+         
+         `Min provdjup (m)` ,
+         `Max provdjup (m)` ,
+         `Syrgashalt (mg/l O2)`) %>% # Brunhet
+  as_tibble() %>% 
+  group_by(Övervakningsstation, `Nationellt övervakningsstations-ID`, `EU id`, `MS_CD C3`, Program, Delprogram, Projekt,`Stationskoordinat N/X`, `Stationskoordinat E/Y`, Provdatum) %>% 
+  filter(`Max provdjup (m)` == max(`Max provdjup (m)`)) %>%
+  ungroup() %>% 
+    dplyr::select(1:25, 
+           
+         `Syrgashalt (mg/l O2)`) %>% 
+  mutate(year = Provtagningsår)%>%
+  #       season = Provtagningsmånad %>% 
+  #         factor() %>% 
+  #         fct_collapse("1" = c("1","2","12"),
+  #                      "2" = c("3","4","5"),
+  #                      "3" = c("6","7","8"),
+  #                      "4" = c("9","10","11")) %>% as.character() %>% 
+  #          parse_number()
+  #        ) %>% 
+  group_by(Övervakningsstation, `Nationellt övervakningsstations-ID`, Program, Delprogram, Projekt, `EU id`, `MS_CD C3`, `Stationskoordinat N/X`, `Stationskoordinat E/Y`,  year)%>%
+  summarize(Min_Syrgashalt=min (`Syrgashalt (mg/l O2)`, na.rm=TRUE))%>%
+  mutate(Min_Syrgashalt=ifelse(Min_Syrgashalt==Inf, NA_real_, Min_Syrgashalt))%>%
+  gather(variable, value, Min_Syrgashalt, na.rm = T) %>% 
+  group_by(Övervakningsstation, `Nationellt övervakningsstations-ID`,`EU id`, `MS_CD C3`, Program, Delprogram, Projekt, `Stationskoordinat N/X`, `Stationskoordinat E/Y`, variable) %>% 
+ periods(year, filter_less_than = 10, max_year=2017) %>% 
+  mutate(n_years = n_distinct(year, na.rm = TRUE), max_year = max(year)) %>%
+  filter(max_year >= 2015, year<=last_year) %>% 
+  ungroup() -> 
+  sjöar_kemi_data2
+```
+
+#Vattentemperatur maj. 
+#######
+#Obs ta bort observationer som inte ligger på 0.5 m för att undvika artificiella trender. Ta bort maj från vattendragen.
+########
+```{r}
+sjöar_kemi %>% 
+  dplyr::select(1:Provtagningsdag, 
+        
+         `Min provdjup (m)` ,
+         `Max provdjup (m)` ,
+         `Vattentemperatur (°C)`) %>% # Temperatur
+    mutate(`Vattentemperatur (°C) - Maj`=case_when(Provtagningsmånad==5~`Vattentemperatur (°C)`,
+                             TRUE~NA_real_))%>%
+  as_tibble() %>% 
+  group_by(Övervakningsstation,`Nationellt övervakningsstations-ID`, `EU id`, `MS_CD C3`, Program, Delprogram, Projekt,`Stationskoordinat N/X`, `Stationskoordinat E/Y`, Provdatum) %>% 
+  filter(`Max provdjup (m)` <= 2, `Max provdjup (m)` == min(`Max provdjup (m)`)) %>%
+  ungroup() %>% # Ytligaste provet som inte är djupare än 2 meter
+    dplyr::select(1:25, 
+           
+         `Vattentemperatur (°C) - Maj`) %>% 
+    mutate(year = ifelse(Provtagningsmånad == 12, yes = Provtagningsår+1, no=Provtagningsår),
+        season = Provtagningsmånad %>% 
+          factor() %>% 
+          fct_collapse("1" = c("1","2","12"),
+                       "2" = c("3","4","5"),
+                       "3" = c("6","7","8"),
+                       "4" = c("9","10","11")) %>% as.character() %>% 
+           parse_number()
+         ) %>% 
+  gather(variable, value, `Vattentemperatur (°C) - Maj`, na.rm = T) %>% 
+  group_by(Övervakningsstation, `Nationellt övervakningsstations-ID`,Program, Delprogram, Projekt, `Stationskoordinat N/X`, `Stationskoordinat E/Y`, variable) %>% 
+ periods(year, filter_less_than = 10, max_year=2017) %>% 
+  mutate(n_years = n_distinct(year, na.rm = TRUE), max_year = max(year)) %>%
+  filter(max_year >= 2015, year<=last_year) %>% 
+  ungroup() -> 
+sjöar_kemi_data3
+```
+#Lägga till vattentemperatur i sammanslagen fil
+
+```{r}
+sjöar_kemi_data <- sjöar_kemi_data1 %>% full_join(sjöar_kemi_data2) %>% full_join(sjöar_kemi_data3)
+```
+
+
+
+```{r warning=FALSE, include=FALSE}
+sjöar_kemi_data %>% 
+  group_by(Övervakningsstation, `Nationellt övervakningsstations-ID`, `EU id`, `MS_CD C3`,Program, Delprogram, Projekt,  `Stationskoordinat N/X`, `Stationskoordinat E/Y`,variable, year, 
+           season, 
+           n_years) %>% 
+  summarise(value = mean(value, na.rm = T),
+            n = n()) %>% 
+  ungroup() %>%
+  group_by(Övervakningsstation, `Nationellt övervakningsstations-ID`, `EU id`, `MS_CD C3`, Program, Delprogram, Projekt, `Stationskoordinat N/X`, `Stationskoordinat E/Y`, variable, year, 
+           n_years) %>% 
+  summarise(value = mean(value, na.rm = T),
+            n = sum(n)) %>% 
+  ungroup()  %>% 
+  mutate(value=case_when(variable=="VJA"~-log10(value),  #beräkna pH ur vätejonaktivitet
+                         TRUE~value),
+         variable=case_when(variable=="VJA"~"pH",
+                            TRUE~variable))%>%
+  ####### Ta säsongsmedelvärden, sen årsmedelvärden på det
+  arrange(Övervakningsstation, `Nationellt övervakningsstations-ID`, Program, Delprogram, Projekt, `Stationskoordinat N/X`, `Stationskoordinat E/Y`,  variable, year) %>% 
+    nest(data = c(-Övervakningsstation, - `Nationellt övervakningsstations-ID`, -`EU id`, -`MS_CD C3`, -Program, -Delprogram, -Projekt, -`Stationskoordinat N/X`, -`Stationskoordinat E/Y`, -variable)) %>% 
+    mutate(fit = future_map(data, 
+                            possibly(~ gam(formula = value ~ s(year, k=n_distinct(.x %>% filter(!is.na(value)) %>% .$year)-2),
+                                data = .x, 
+                                method="REML", select=T), otherwise = NA_real_), .progress = T),
+            fderiv = map2(fit, data, possibly(~ derivatives(object=.x, type="forward", term = "s(year)", interval="conf", level=0.95,data = .y)%>% mutate(year1=data)%>%select(-data), otherwise = NA_integer_))) %>% 
+  mutate(trend = map2(fit, data, possibly(~ predict.gam(object = .x, newdata = .y, type="response"), otherwise = NA_real_), .progress = TRUE)) -> gam_output
+
+gam_output%>%filter(!is.na(fit))%>%
+  unnest(c(data, trend, fderiv))%>%dplyr::select(-c(fit, smooth, var,by_var, fs_var,year1))%>%
+  mutate(dir=case_when(lower>0 ~1,
+                       upper <0 ~-1,
+                       TRUE~0))->
+  gam_models_sjö_kemi
+  gam_models_sjö_kemi$trend = gam_models_sjö_kemi$trend %>% as.vector()
+```
+
+# ```{r}
+# gam_models_sjö_kemi %>%
+#     #full_join(vattendrag_kemi_vars) %>%
+#   transmute(VattenID = `EU id`, 
+#             MS_CD=`MS_CD C3`,
+#             `Nationellt övervakningsstations-ID`=`Nationellt övervakningsstations-ID`,
+#             `Stationskoordinat E/Y`=`Stationskoordinat E/Y`,
+#             `Stationskoordinat N/X`=`Stationskoordinat N/X`,
+#             Vattenkategori = "Station", 
+#             VariabelID=variable, 
+#             Bedömningsår = year,
+#             Årsvärde = value, 
+#             Standardfel = NA, 
+#             Trendvärde = trend, 
+#             Trendkodning=dir,
+#             `Antal provtagningstillfällen` = n,
+#             `Andel regionala data` = 0) %>% 
+# # filter(!is.na(VariabelID)) %>%
+#   write_excel_csv("Outdata\\sjöar_vattenkemi_serier.csv", na = "")
+# ```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+gam_models_sjö_kemi %>% 
+  filter(n_years >= 10, !is.na(value)) %>% 
+  nest(data = c(-Övervakningsstation,-`Nationellt övervakningsstations-ID`, -`EU id`, -`MS_CD C3`, -Program, -Delprogram, -Projekt,-variable, -`Stationskoordinat N/X`, -`Stationskoordinat E/Y`)) %>% 
+  mutate(fit = map(data, possibly(~rkt(date = as.data.frame(.x)$year, 
+                                       y=as.data.frame(.x)$value, correct = TRUE), otherwise=NA_real_)),
+         tidy = map(fit, possibly(~rkt_out(.x), otherwise=NA_real_))) %>% 
+  unnest(tidy) %>% 
+  dplyr::select(-data, -fit)  %>% 
+  mutate(sig.stars=cut(p.value, breaks=c(1, 0.05,0.01,0.001,0.0001,0), 
+                   labels=c("ns","*","**","***","****") %>% rev, ordered_result = T),
+         p.value = p.value %>% round(4),
+         slope = slope %>% signif(4), 
+         tau = tau %>% round(4),
+         Period="Hela perioden") %>% 
+         replace_na(list(sig.stars="****")) ->
+  kemi_sjo_mannkendall1
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+gam_models_sjö_kemi %>% 
+  filter(n_years >= 10, !is.na(value)) %>% 
+  filter(year>last_year-6)%>%
+  nest(data = c(-Övervakningsstation,-`Nationellt övervakningsstations-ID`, -`EU id`, -`MS_CD C3`,-Program, -Delprogram, -Projekt, -variable, -`Stationskoordinat N/X`, -`Stationskoordinat E/Y`)) %>% 
+  mutate(fit = map(data, possibly(~rkt(date = as.data.frame(.x)$year, 
+                                       y=as.data.frame(.x)$value, correct = TRUE), otherwise=NA_real_)),
+         tidy = map(fit, possibly(~rkt_out(.x), otherwise=NA_real_))) %>% 
+  unnest(tidy) %>% 
+  dplyr::select(-data, -fit)  %>% 
+  mutate(sig.stars=cut(p.value, breaks=c(1, 0.05,0.01,0.001,0.0001,0), 
+                   labels=c("ns","*","**","***","****") %>% rev, ordered_result = T),
+         p.value = p.value %>% round(4),
+         slope = slope %>% signif(4), 
+         tau = tau %>% round(4),
+         Period="6") %>% 
+         replace_na(list(sig.stars="****")) ->
+  kemi_sjo_mannkendall_6år
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+gam_models_sjö_kemi %>% 
+  filter(n_years >= 10, !is.na(value)) %>% 
+  filter(year>last_year-12)%>%
+  nest(data = c(-Övervakningsstation, -`Nationellt övervakningsstations-ID`, -`EU id`, -`MS_CD C3`, -Program, -Delprogram, -Projekt,-variable, -`Stationskoordinat N/X`, -`Stationskoordinat E/Y`)) %>% 
+  mutate(fit = map(data, possibly(~rkt(date = as.data.frame(.x)$year, 
+                                       y=as.data.frame(.x)$value, correct = TRUE), otherwise=NA_real_)),
+         tidy = map(fit, possibly(~rkt_out(.x), otherwise=NA_real_))) %>% 
+  unnest(tidy) %>% 
+  dplyr::select(-data, -fit)  %>% 
+  mutate(sig.stars=cut(p.value, breaks=c(1, 0.05,0.01,0.001,0.0001,0), 
+                   labels=c("ns","*","**","***","****") %>% rev, ordered_result = T),
+         p.value = p.value %>% round(4),
+         slope = slope %>% signif(4), 
+         tau = tau %>% round(4),
+         Period="12") %>% 
+         replace_na(list(sig.stars="****")) ->
+  kemi_sjo_mannkendall_12år
+```
+
+
+```{r}
+kemi_sjo_mannkendall1%>%full_join(kemi_sjo_mannkendall_6år)%>%full_join(kemi_sjo_mannkendall_12år)->kemi_sjo_mannkendall
+
+```
+
+<!-- ```{r} -->
+<!-- kemi_sjo_mannkendall%>% -->
+<!--     #full_join(vattendrag_kemi_vars) %>% -->
+
+<!--   write_excel_csv("Outdata\\sjöar_vattenkemi_mk.csv", na = "") -->
+<!-- ``` -->
+

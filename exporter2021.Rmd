@@ -1,0 +1,462 @@
+---
+title: "Export"
+output: html_notebook
+---
+
+
+
+# Kodbok och variabelnamn
+```{r}
+Import_variabler_sotvatten <- read_excel("Import variabler sotvatten.xlsx", # ö till o
+                                         col_types = c("text", "text", "text","text",
+                                                       "skip", "text", "skip", "skip",
+                                                       "text", "skip", "text", "skip","skip"))
+
+codebook <- tibble::tribble(
+                                         ~`DATA ID`,               ~variable,
+                                    "Klorofyll a",                "Kfyll (µg/l)",
+                    "Total biovolym växtplankton",            "Biovolym (mm3/l)",
+                   "Total biovolym cyanobakterier",       "Cyanobacteria (mm3/l)",
+                                         "Sulfat",             "SO4_komb",
+                                    "Totalfosfor",                "Tot-P (µg/l P)",
+                                     "Totalkväve",                "Tot-N (µg/l N)",
+                          "Lättillgänglig fosfor",                "PO4-P (µg/l P)",
+                               "Oorganiskt kväve",         "Oorganiskt N (µg/l N)",
+                           "Totalt organiskt kol",                  "TOC (mg/l C)",
+                                          "Kisel",                   "Si (µg/l)",
+                             "Temperatur - helår",         "Vattentemperatur (°C) - helår",
+                               "Temperatur - vår",         "Vattentemperatur (°C) - Maj",
+                                       "Siktdjup",                "Siktdjup (m)",
+                                    "Alkalinitet",        "Alkalinitet (mekv/l)",
+                                        "Brunhet",            "Abs_F 420 (/5cm)",
+                                             "pH",                          "pH",
+                                "Lägsta Syrehalt",              "Min_Syrgashalt",
+                                  "Konduktivitet",              "Kond_25 (mS/m)",
+       "Total kvävebelastning från flodmynningar",                   "Tot_N ton",
+ "Belastning oorganiskt kväve från flodmynningar",                "Oorganiskt N",
+      "Total fosforbelastning från flodmynningar",                   "Tot-P ton",
+   "Belastning lättillgänglig fosfor från flodmynningar",                   "PO4-P ton",
+ "Total belastning organiskt kol från flodmynningar",                     "TOC ton",
+                           "Insjöfisk totalmängd",        "Insjöfisk totalmängd",
+                          "Insjöfisk antal arter",       "Insjöfisk antal arter",
+                              "Insjöfisk abborre",      	   "Insjöfisk abborre",
+                                "Insjöfisk gädda",       	     "Insjöfisk gädda",
+                                 "Insjöfisk mört",       	      "Insjöfisk mört",
+                               "Insjöfisk röding",      	    "Insjöfisk röding",
+                     "Vattendrag totalmängd fisk",	"Vattendrag totalmängd fisk",
+                                 "Vattendrag lax",	            "Vattendrag lax",
+                               "Vattendrag öring",          	"Vattendrag öring",
+                         "Vattendrag antal arter",	    "Vattendrag antal arter",
+                                 "Medelavrinning",                      "medelq",
+                               "Kadmium i vatten",                   "Cd (µg/l)", 
+                           "Kvicksilver i vatten",                   "Hg (ng/l)",
+                                "Nickel i vatten",                   "Ni (µg/l)",  
+                                   "Bly i vatten",                   "Pb (µg/l)",
+                                            "IPS",                         "IPS",
+                                           "ACID",                        "ACID",
+                        "Bentiskt kvalitetsindex",                         "BQI",
+  #                            "Biomassa blötdjur",	         "Biomassa blötdjur",
+  #                  "Biomassa leddjur - insekter", "Biomassa leddjur - insekter",
+  #                 "Biomassa leddjur - kräftdjur","Biomassa leddjur - kräftdjur",
+  #                          "Biomassa ringmaskar",         "Biomassa ringmaskar",
+  #      "Individtäthet alla bottendjur - litoral", "Individtäthet alla bottendjur - litoral",
+        "Individtäthet alla bottendjur",	"Individtäthet alla bottendjur - profundal",
+   #            "Individtäthet blötdjur - litoral", "Individtäthet blötdjur - litoral",
+                          "Individtäthet blötdjur", "Individtäthet blötdjur - profundal",
+#     "Individtäthet leddjur - insekter - litoral", "Individtäthet leddjur - insekter - litoral",
+                "Individtäthet leddjur - insekter", "Individtäthet leddjur - insekter - profundal",
+  #  "Individtäthet leddjur - kräftdjur - litoral",	"Individtäthet leddjur - kräftdjur - litoral",
+               "Individtäthet leddjur - kräftdjur",	"Individtäthet leddjur - kräftdjur - profundal",
+   #          "Individtäthet ringmaskar - litoral", "Individtäthet ringmaskar - litoral",
+                        "Individtäthet ringmaskar", "Individtäthet ringmaskar - profundal",
+  #                              "Totala biomassa",            "Totala biomassa",
+  #                "Individtäthet alla bottendjur", "Individtäthet alla bottendjur",
+  #                       "Individtäthet blötdjur",     "Individtäthet blötdjur",
+  #             "Individtäthet leddjur - insekter", 	"Individtäthet leddjur - insekter",
+  #            "Individtäthet leddjur - kräftdjur", "Individtäthet leddjur - kräftdjur",
+  #                     "Individtäthet ringmaskar",	 "Individtäthet ringmaskar",
+                                      "MILA 2018",                  "MILA 2018",
+ "Generell påverkan på bottenfauna i sötvatten (ASPT)",                       "ASPT",
+                                           "MISA",                       "MISA",
+                                             "DJ",                         "DJ"
+
+                          )
+```
+
+
+
+```{r}
+Import_variabler_sotvatten%>%
+  transmute(Mätvariabel=Namn,
+            `Mätvariabel (Orig)` = `MVM-databas`,
+            Mätvariabelgrupp=Variabelgrupp,
+            `Enhet (sjöar och vattendrag)`=`Enhet (sjöar och vattendrag)`,
+            `Beskrivning (sjöar och vattendrag)`= `Beskrivning (sjöar och vattendrag)`)%>%
+    write_excel_csv("Outdata\\Tidstrender - Mätvariabler.csv", na = "") 
+
+```
+
+################################
+# Sjöar
+####################################
+
+## Vattenkemi
+
+Kolla om Kisel och SO4 är rätt kodade för nya data 2021.
+############
+```{r}
+vattenkemi_sjo_var <- kemi_sjo_mannkendall %>%
+  dplyr::select(variable) %>%
+  distinct() %>%
+  left_join(codebook) %>%
+  left_join(Import_variabler_sotvatten) %>%
+  rename(`VariabelID` = `DATA ID`)
+```
+
+### Mann-Kendall
+```{r}
+kemi_sjo_mannkendall %>%
+  full_join(vattenkemi_sjo_var) %>%
+  filter(VariabelID %in% c("Brunhet", "Alkalinitet", "Konduktivitet", "Oorganiskt kväve", "Lättillgänglig fosfor", "Totalkväve", "Totalfosfor", "pH", "Kisel", "Sulfat", "Totalt organiskt kol", "Temperatur - vår"))%>%
+  transmute(`Provplats ID (VISS)`= `EU id`, 
+            `Provplats ID (Stationsregistret)`=NA,
+            #Vattenkategori = "Station", 
+            Mätvariabel=VariabelID,
+            `Trend` = case_when(p.value < 0.05 & tau > 0 ~ "ökande",
+                                               p.value < 0.05 & tau < 0 ~ "minskande",
+                                               p.value > 0.05 ~ "neutral"),
+            `p-värde` = p.value,
+            # `Medianförändring per år` = case_when(p.value<0.05 & slope==0 ~ NA_real_,
+            #                                       TRUE ~slope),
+            Period=Period)%>%
+  write_excel_csv("Outdata\\sjo_kemi_status.csv",
+                  na = "")
+```
+
+### Trender
+
+#!!!!! Kolla om provplatsID finns och ska läggas till.
+```{r}
+gam_models_sjö_kemi %>%
+  full_join(vattenkemi_sjo_var) %>%
+  left_join(sjöar_kemi %>%
+              dplyr::select(1:5, 
+                     `MS_CD C3`) %>% 
+              distinct())  %>%
+  filter(VariabelID %in% c("Brunhet", "Alkalinitet", "Konduktivitet", "Oorganiskt kväve", "Lättillgänglig fosfor", "Totalkväve", "Totalfosfor", "pH", "Kisel", "Sulfat", "Totalt organiskt kol", "Temperatur - vår"))%>%
+ # ungroup %>%
+  transmute(`Provplats ID (VISS)`= `EU id`, 
+            `Provplats ID (Stationsregistret)`=NA,
+            #Vattenkategori = "Station", 
+            Mätvariabel=VariabelID, 
+            År = year,
+            Årsvärde = value, 
+           # Standardfel = NA, 
+            `Trendvärde (modellvärde)` = trend, 
+            `Trend (modelltrend)`=case_when(dir== 0 ~ "neutral",
+                                            dir==-1 ~ "minskande",
+                                            dir==1 ~ "ökande"),
+            `Antal mätningar` = n) %>% 
+  filter(!is.na(Mätvariabel)) %>%
+  write_excel_csv("Outdata\\sjo_kemi_serier.csv", 
+                  na = "")
+```
+
+
+
+#############################
+# Vattendrag
+##############################
+
+
+
+## Vattenkemi
+```{r}
+vattendrag_kemi_vars <- vattendrag_mannkendall %>%
+  dplyr::select(variable) %>%
+  distinct() %>%
+  left_join(codebook) %>%
+  left_join(Import_variabler_sotvatten) %>%
+  rename(`VariabelID` = `DATA ID`)
+
+```
+
+### Mann-Kendall
+
+```{r}
+vattendrag_mannkendall %>%
+  full_join(vattendrag_kemi_vars) %>%
+    filter(VariabelID %in% c("Brunhet", "Alkalinitet", "Konduktivitet", "Oorganiskt kväve", "Lättillgänglig fosfor", "Totalkväve", "Totalfosfor", "pH", "Kisel", "Sulfat", "Totalt organiskt kol", "Temperatur - vår", "Temperatur - helår"))%>%
+  transmute(`Provplats ID (VISS)`= `EU id`, 
+            `Provplats ID (Stationsregistret)`=NA,
+            #MS_CD=`MS_CD C3`,
+            #Vattenkategori = "Station", 
+            Mätvariabel=VariabelID,
+            `Trend` = case_when(p.value < 0.05 & tau > 0 ~ "ökande",
+                                               p.value < 0.05 & tau < 0 ~ "minskande",
+                                               p.value > 0.05 ~ "neutral"),
+            `p-värde` = p.value,
+            # `Medianförändring per år` = case_when(p.value<0.05 & slope==0 ~ NA_real_,
+            #                                       TRUE ~slope),
+            Period=Period)%>%  #Lutningens värde är mindre än 0.0001 och visas inte. En omskalning av variabeln skulle lösa problemet.
+  write_excel_csv("Outdata\\vattendrag_vattenkemi_status.csv",
+                  na = "")
+```
+
+### Trender
+
+```{r}
+gam_models_vattendrag_kemi %>%
+  full_join(vattendrag_kemi_vars) %>%
+      filter(VariabelID %in% c("Brunhet", "Alkalinitet", "Konduktivitet", "Oorganiskt kväve", "Lättillgänglig fosfor", "Totalkväve", "Totalfosfor", "pH", "Kisel", "Sulfat", "Totalt organiskt kol", "Temperatur - vår", "Temperatur - helår"))%>%
+   transmute(`Provplats ID (VISS)`= `EU id`, 
+            `Provplats ID (Stationsregistret)`=NA,
+            #Vattenkategori = "Station", 
+            Mätvariabel=VariabelID, 
+            År = Provtagningsår,
+            Årsvärde = value, 
+           # Standardfel = NA, 
+            `Trendvärde (modellvärde)` = trend, 
+            `Trend (modelltrend)`=case_when(dir== 0 ~ "neutral",
+                                            dir==-1 ~ "minskande",
+                                            dir==1 ~ "ökande"),
+            `Antal mätningar` = n) %>% 
+  filter(!is.na(Mätvariabel)) %>%
+  write_excel_csv("Outdata\\vattendrag_vattenkemi_serier.csv", na = "")
+```
+
+############################
+Kombinera sjöar och vattendrag
+##############################
+
+```{r}
+read_csv("Outdata\\vattendrag_vattenkemi_serier.csv")%>%bind_rows(read_csv("Outdata\\sjo_kemi_serier.csv"))%>%
+  write_excel_csv("Outdata\\Tidstrender - Data.csv", na = "")
+
+
+read_csv("Outdata\\vattendrag_vattenkemi_status.csv")%>%bind_rows(read_csv("Outdata\\sjo_kemi_status.csv"))%>%
+  write_excel_csv("Outdata\\Tidstrender - Mann-Kendall.csv", na = "")
+```
+
+
+
+######################
+# Lista med sjöar
+#######################
+```{r}
+kemi_sjo_mannkendall %>%
+  dplyr::select(Övervakningsstation, `Nationellt övervakningsstations-ID`, `EU id`, `MS_CD C3`, Program, Delprogram, Projekt)%>%#, `Stationskoordinat N/X`, `Stationskoordinat E/Y`) %>%
+  mutate(Vattenkategori="Sjö")%>%
+  distinct() %>%
+  transmute(`Provplats ID (VISS)`= `EU id`, 
+            `Provplats ID (Stationsregistret)`=NA,
+            `Vattenförekomst ID (MS_CD)`=`MS_CD C3`,
+            Programområde=Program,
+            Delprogram=Projekt)%>%
+  # full_join(vaxtplankton_mannkendall %>%
+  #             dplyr::select(Övervakningsstation, `EU id`, `MS_CD C3`,  `Stationskoordinat N/X`, `Stationskoordinat E/Y`, Regionala) %>%
+  #             distinct()) %>%
+  # full_join(fisk_mannkendall%>%
+  #             dplyr::select(Övervakningsstation, `EU id`, `MS_CD C3`,  `Stationskoordinat N/X`, `Stationskoordinat E/Y`, Regionala) %>%
+  #             distinct()) %>%
+  # full_join(sjo_bottenfauna_mannkendall%>%
+  #             dplyr::select(Övervakningsstation, `EU id`, `MS_CD C3`,  `Stationskoordinat N/X`, `Stationskoordinat E/Y`, Regionala) %>%
+  #             distinct()) %>%
+#filter(!`EU id` %in% removeSeries$VattenID)%>%
+write_excel_csv("allasjoar2022.csv", na = "")
+```
+
+########################
+# Lista med vattendrag
+########################
+```{r}
+vattendrag_mannkendall %>%
+  # dplyr::select(Övervakningsstation, `Nationellt övervakningsstations-ID`, `EU id`, `MS_CD C3`, Program, Delprogram, Projekt, `Stationskoordinat N/X`, `Stationskoordinat E/Y`) %>%
+  dplyr::select(`EU id`, `MS_CD C3`, Program,  Projekt) %>%
+  mutate(Vattenkategori="Vattendrag")%>%
+  distinct()%>%
+  transmute(`Provplats ID (VISS)`= `EU id`, 
+            `Provplats ID (Stationsregistret)`=NA,
+            `Vattenförekomst ID (MS_CD)`=`MS_CD C3`,
+            Programområde=Program,
+            Delprogram=Projekt)%>%
+ #  full_join(vattendrag_kiselalger_mannkendall%>%
+ #              dplyr::select(1:5)%>%
+ #              distinct())%>%
+ #  full_join(fisk_vdr_mannkendall%>%dplyr::select(1:5)%>%
+ #              distinct())%>%
+ #  full_join(vdr_bottenfauna_mannkendall%>%dplyr::select(1:5)%>%
+ #              distinct())%>%
+ #  distinct(Övervakningsstation,`EU id`, `MS_CD C3`, .keep_all=TRUE)%>%
+ # filter(!`EU id` %in% removeSeries_vdr$VattenID)%>%
+  write_excel_csv("allavattendrag2022.csv", na = "")
+```
+
+
+```{r}
+
+read_csv("allavattendrag2022.csv")%>%bind_rows(read_csv("allasjoar2022.csv"))%>%
+  write_excel_csv("Outdata\\Tidstrender - Metadata.csv", na = "")
+```
+
+
+<!-- ######################## -->
+<!-- # Jämför med Masterfil -->
+<!-- ######################## -->
+<!-- ### Sjöar -->
+<!-- ```{r} -->
+<!-- allasjoar <- read_csv("allasjoar2022.csv") -->
+<!-- masterfil <- read_excel("Koordinatfiler/SjöarMASTERfil1.xlsx") -->
+
+<!-- ##Jämför ID -->
+<!-- använda_ID <- allasjoar$`EU id` -->
+<!-- master_ID <- masterfil$`StationsID` -->
+
+<!-- #Använda ID som inte finns i master-filen -->
+<!-- diff1 <- unique(använda_ID[! använda_ID %in% master_ID]) -->
+<!-- anvID <- allasjoar[allasjoar$`EU id` %in% diff1[!is.na(diff1)],] -->
+
+<!-- #ID från masterfilen som inte använts i beräkning -->
+<!-- diff2 <- unique(master_ID[! master_ID %in% använda_ID]) -->
+<!-- mID <- masterfil[masterfil$StationsID %in% diff2[!is.na(diff2)],] -->
+
+<!-- ##Jämför namn -->
+<!-- använda_Namn <- allasjoar$Övervakningsstation -->
+<!-- master_Namn <- masterfil$Stationsnamn -->
+
+<!-- #Använda Namn som inte finns i master-filen -->
+<!-- diff3 <- unique(använda_Namn[! använda_Namn %in% master_Namn]) -->
+<!-- anvN <- allasjoar[allasjoar$Övervakningsstation %in% diff3[!is.na(diff3)],] -->
+
+<!-- #Namn från masterfilen som inte använts i beräkning -->
+<!-- diff4 <- unique(master_Namn[! master_Namn %in% använda_Namn]) -->
+<!-- mN <- masterfil[masterfil$Stationsnamn %in% diff4[!is.na(diff4)],] -->
+<!-- sakN <- mN[!(mN$StationsID %in% allasjoar$`EU id`),] -->
+
+<!-- ##Jämför Vattenförekomst -->
+<!-- använda_MS <- allasjoar$`MS_CD C3` -->
+<!-- master_MS <- masterfil$VattenförekomstID -->
+
+<!-- #Använda ID som inte finns i master-filen -->
+<!-- diff5 <- unique(använda_MS[! använda_MS %in% master_MS]) -->
+<!-- anvMS <- allasjoar[allasjoar$`MS_CD C3` %in% diff5[!is.na(diff5)],] -->
+
+<!-- #ID från masterfilen som inte använts i beräkning -->
+<!-- diff6 <- unique(master_MS[! master_MS %in% använda_MS]) -->
+<!-- mMS <- masterfil[masterfil$VattenförekomstID %in% diff6[!is.na(diff6)],] -->
+<!-- sakMS <- mMS[!(mMS$StationsID %in% allasjoar$`EU id`),] -->
+
+<!-- #Saknas i använda -->
+<!-- #write_excel_csv(full_join(mID,full_join(sakMS,sakN)),"sjo_ej_använt_från_master.csv") -->
+<!-- #Saknas i masterfil -->
+<!-- write_excel_csv(full_join(anvID,full_join(anvN,anvMS)),"sjo_ej_i_master.csv") -->
+
+<!-- ``` -->
+
+<!-- ### Vattendrag -->
+<!-- ```{r} -->
+<!-- #Jämför ID -->
+<!--   allavdr <- read_csv("allavattendrag2022.csv") -->
+<!--   masterfil_vdr <- read_excel("Koordinatfiler/Vattendrag_MASTERfil.xlsx") -->
+
+<!--   använda_ID <- allavdr$`EU id` -->
+<!--   master_ID <- masterfil_vdr$`StationsID` -->
+
+<!--   #Använda ID som inte finns i master-filen -->
+<!--   diff1 <- unique(använda_ID[! använda_ID %in% master_ID]) -->
+<!--   anvID <- allavdr[allavdr$`EU id` %in% diff1[!is.na(diff1)],] -->
+
+<!--   #ID från masterfilen som inte använts i beräkning -->
+<!--   diff2 <- unique(master_ID[! master_ID %in% använda_ID]) -->
+<!--   mID <- masterfil_vdr[masterfil_vdr$StationsID %in% diff2[!is.na(diff2)],] -->
+
+<!-- ##Jämför namn -->
+<!--   använda_Namn <- allavdr$Övervakningsstation -->
+<!--   master_Namn <- masterfil_vdr$Stationsnamn -->
+
+<!--   #Använda Namn som inte finns i master-filen -->
+<!--   diff3 <- unique(använda_Namn[! använda_Namn %in% master_Namn]) -->
+<!--   anvN <- allavdr[allavdr$Övervakningsstation %in% diff3[!is.na(diff3)],] -->
+
+<!--   #Namn från masterfilen som inte använts i beräkning -->
+<!--   diff4 <- unique(master_Namn[! master_Namn %in% använda_Namn]) -->
+<!--   mN <- masterfil_vdr[masterfil_vdr$Stationsnamn %in% diff4[!is.na(diff4)],] -->
+<!--   sakN <- mN[!(mN$StationsID %in% allavdr$`EU id`),] -->
+
+<!-- ##Jämför Vattenförekomst -->
+<!--   använda_MS <- allavdr$`MS_CD C3` -->
+<!--   master_MS <- masterfil_vdr$VattenförekomstID -->
+
+<!--   #Använda ID som inte finns i master-filen -->
+<!--   diff5 <- unique(använda_MS[! använda_MS %in% master_MS]) -->
+<!--   anvMS <- allavdr[allavdr$`MS_CD C3` %in% diff5[!is.na(diff5)],] -->
+
+<!--   #ID från masterfilen som inte använts i beräkning -->
+<!--   diff6 <- unique(master_MS[! master_MS %in% använda_MS]) -->
+<!--   mMS <- masterfil_vdr[masterfil_vdr$VattenförekomstID %in% diff6[!is.na(diff6)],] -->
+<!--   sakMS <- mMS[!(mMS$StationsID %in% allavdr$`EU id`),] -->
+
+<!-- #Saknas i använda -->
+<!-- write_excel_csv(full_join(mID,full_join(sakMS,sakN)),"vdr_ej_använt_från_master.csv") -->
+
+<!-- #Saknas i masterfil -->
+<!-- write_excel_csv(full_join(anvID,full_join(anvN,anvMS)),"vdr_ej_i_master.csv") -->
+<!-- ``` -->
+<!-- Samma med statusfil: -->
+
+<!-- ```{r} -->
+
+
+
+<!-- allasjoar<-read_csv("Outdata2022\\sjo_status_alla.csv") -->
+<!-- masterfil <- read_excel("Koordinatfiler/SjöarMASTERfil1.xlsx") -->
+
+<!-- ID<-masterfil$StationsID -->
+
+<!-- allasjoar%>%filter(!VattenID %in% ID)%>%distinct(VattenID) -->
+
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- allavdr<-fisk_vdr_mannkendall%>%dplyr::select(1:5)%>% -->
+<!--               distinct() -->
+
+<!--  masterfil_vdr <- read_excel("Koordinatfiler/Vattendrag_MASTERfil.xlsx") -->
+
+<!--   använda_ID <- allavdr$`EU id` -->
+<!--   master_ID <- masterfil_vdr$`StationsID` -->
+
+<!--   #Använda ID som inte finns i master-filen -->
+<!--   diff1 <- unique(använda_ID[! använda_ID %in% master_ID]) -->
+<!--   anvID <- allavdr[allavdr$`EU id` %in% diff1[!is.na(diff1)],] -->
+
+<!--   #ID från masterfilen som inte använts i beräkning -->
+<!--   diff2 <- unique(master_ID[! master_ID %in% använda_ID]) -->
+<!--   mID <- masterfil_vdr[masterfil_vdr$StationsID %in% diff2[!is.na(diff2)],] -->
+
+<!-- ##Jämför namn -->
+<!--   använda_Namn <- allavdr$Övervakningsstation -->
+<!--   master_Namn <- masterfil_vdr$Stationsnamn -->
+
+<!--   #Använda Namn som inte finns i master-filen -->
+<!--   diff3 <- unique(använda_Namn[! använda_Namn %in% master_Namn]) -->
+<!--   anvN <- allavdr[allavdr$Övervakningsstation %in% diff3[!is.na(diff3)],] -->
+
+<!--   #Namn från masterfilen som inte använts i beräkning -->
+<!--   diff4 <- unique(master_Namn[! master_Namn %in% använda_Namn]) -->
+<!--   mN <- masterfil_vdr[masterfil_vdr$Stationsnamn %in% diff4[!is.na(diff4)],] -->
+<!--   sakN <- mN[!(mN$StationsID %in% allavdr$`EU id`),] -->
+
+<!-- ##Jämför Vattenförekomst -->
+<!--   använda_MS <- allavdr$`MS_CD C3` -->
+<!--   master_MS <- masterfil_vdr$VattenförekomstID -->
+
+<!--   #Använda ID som inte finns i master-filen -->
+<!--   diff5 <- unique(använda_MS[! använda_MS %in% master_MS]) -->
+<!--   anvMS <- allavdr[allavdr$`MS_CD C3` %in% diff5[!is.na(diff5)],] -->
+
+<!--   #ID från masterfilen som inte använts i beräkning -->
+<!--   diff6 <- unique(master_MS[! master_MS %in% använda_MS]) -->
+<!--   mMS <- masterfil_vdr[masterfil_vdr$VattenförekomstID %in% diff6[!is.na(diff6)],] -->
+<!--   sakMS <- mMS[!(mMS$StationsID %in% allavdr$`EU id`),] -->
+<!-- ``` -->
+
